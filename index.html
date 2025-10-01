@@ -1,19 +1,65 @@
 <!doctype html>
 <html lang="vi">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Countdown 5 phút — lặp vô tận</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#e6eef8}
-    .card{background:linear-gradient(180deg,#0b1220,rgba(255,255,255,0.02));padding:28px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6);text-align:center;width:320px}
-    .time{font-size:56px;font-weight:700;letter-spacing:2px;margin-bottom:8px}
-    .label{opacity:0.75;margin-bottom:12px}
-    .controls button{margin:6px;padding:8px 14px;border-radius:8px;border:0;background:#2563eb;color:white;cursor:pointer}
-    .controls button.secondary{background:#334155}
-    small{display:block;margin-top:10px;opacity:0.7}
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #0f172a;
+      color: #e6eef8
+    }
+
+    .card {
+      background: linear-gradient(180deg, #0b1220, rgba(255, 255, 255, 0.02));
+      padding: 28px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+      text-align: center;
+      width: 320px
+    }
+
+    .time {
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 8px
+    }
+
+    .label {
+      opacity: 0.75;
+      margin-bottom: 12px
+    }
+
+    .controls button {
+      margin: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 0;
+      background: #2563eb;
+      color: white;
+      cursor: pointer
+    }
+
+    .controls button.secondary {
+      background: #334155
+    }
+
+    small {
+      display: block;
+      margin-top: 10px;
+      opacity: 0.7
+    }
   </style>
 </head>
+
 <body>
   <div class="card">
     <div class="time" id="time">05:00</div>
@@ -25,11 +71,12 @@
     <small id="status">Đang chạy</small>
   </div>
 
+  <!-- Thêm file chuông mp3 của bạn vào cùng thư mục, đổi tên nếu cần -->
+  <audio id="alarmSound" src="./bell-fx-410608.mp3" preload="auto"></audio>
+
   <script>
-    // Cấu hình (thay đổi nếu muốn)
     const DURATION_SECONDS = 5 * 60; // 5 phút
 
-    // Trạng thái
     let remaining = DURATION_SECONDS;
     let intervalId = null;
     let running = true;
@@ -38,76 +85,65 @@
     const startPauseBtn = document.getElementById('startPause');
     const resetBtn = document.getElementById('reset');
     const statusEl = document.getElementById('status');
+    const alarmSound = document.getElementById('alarmSound');
 
-    function formatTime(sec){
-      const m = Math.floor(sec/60).toString().padStart(2,'0');
-      const s = Math.floor(sec%60).toString().padStart(2,'0');
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = Math.floor(sec % 60).toString().padStart(2, '0');
       return `${m}:${s}`;
     }
 
-    function updateDisplay(){
+    function updateDisplay() {
       timeEl.textContent = formatTime(remaining);
     }
 
-    function playBeep(){
-      try{
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'sine';
-        o.frequency.value = 880;
-        g.gain.value = 0.0001; // small initial value to avoid click
-        o.connect(g);
-        g.connect(ctx.destination);
-        o.start();
-        g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 1.0);
-        o.stop(ctx.currentTime + 1.05);
-      } catch(e){
-        // fallback: try alert sound
-        console.warn('AudioContext không khả dụng, dùng alert thay thế.');
-        alert('⏰ Hết giờ!');
-      }
+    function playBeep() {
+      alarmSound.volume = 1.0; // max volume
+      alarmSound.currentTime = 0;
+      alarmSound.loop = true; // kêu liên tục
+      alarmSound.play();
+
+      // tắt sau 10 giây
+      setTimeout(() => {
+        alarmSound.pause();
+        alarmSound.currentTime = 0;
+        alarmSound.loop = false;
+      }, 10000);
     }
 
-    function onFinish(){
-      // Báo
+    function onFinish() {
       playBeep();
-      // Ngắn: hiển thị trạng thái, chờ 1s rồi reset
       statusEl.textContent = 'Hết giờ — reo!';
-      setTimeout(()=>{
-        // reset và tiếp tục
+      setTimeout(() => {
         remaining = DURATION_SECONDS;
         updateDisplay();
         statusEl.textContent = running ? 'Đang chạy' : 'Tạm dừng';
-      }, 800);
+      }, 1000);
     }
 
-    function tick(){
+    function tick() {
       if (!running) return;
       remaining -= 1;
-      if (remaining <= 0){
+      if (remaining <= 0) {
         onFinish();
       }
       updateDisplay();
     }
 
-    // Bắt đầu interval
-    function startInterval(){
+    function startInterval() {
       if (intervalId) return;
       intervalId = setInterval(tick, 1000);
     }
 
-    function stopInterval(){
+    function stopInterval() {
       if (!intervalId) return;
       clearInterval(intervalId);
       intervalId = null;
     }
 
-    // Controls
-    startPauseBtn.addEventListener('click', ()=>{
+    startPauseBtn.addEventListener('click', () => {
       running = !running;
-      if (running){
+      if (running) {
         startPauseBtn.textContent = 'Tạm dừng';
         statusEl.textContent = 'Đang chạy';
       } else {
@@ -116,20 +152,15 @@
       }
     });
 
-    resetBtn.addEventListener('click', ()=>{
+    resetBtn.addEventListener('click', () => {
       remaining = DURATION_SECONDS;
       updateDisplay();
       statusEl.textContent = running ? 'Đang chạy' : 'Tạm dừng';
     });
 
-    // Auto-start
     updateDisplay();
     startInterval();
-
-    // Khi tab mất focus, dùng setTimeout trick để đảm bảo đếm gần đúng (browsers throttle timers)
-    // Khi tab bị throttle, vẫn sẽ cập nhật khi người dùng quay lại — hợp lý cho mục đích đơn giản này.
-
-    // Ghi chú: nếu muốn tiếng reo dài hơn hoặc một âm cụ thể, có thể thay playBeep bằng phát file âm thanh.
   </script>
 </body>
+
 </html>
